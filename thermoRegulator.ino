@@ -42,14 +42,10 @@ Main processing loop
  */
 void loop(){
 
-  //put(readTemperature());
+  put(readTemperature());
   //printTimeSeries();
 
-  //calculateM(readableTs);
- 
- float test[] = {1.0, 2.0};
- Serial.println(average(test));
- 
+  calculateM(getTimeSeries());
 
   delay(PERIOD);
 }
@@ -68,9 +64,9 @@ float readTemperature(){
  */
 void printTimeSeries()
 {
-  updateTS();
+  float * timeSeries = getTimeSeries();
   for (int i = 0; i < CAPACITY; i++){
-    Serial.print(readableTs[i]);
+    Serial.print(timeSeries[i]);
     Serial.print(" ");
   }
   Serial.println("");
@@ -102,7 +98,7 @@ void put (float value)
 /*
  Copies the current time series backing array into a presentable array.
  */
-void updateTS(){
+float * getTimeSeries(){
 
   for(int i = 0; i < CAPACITY; i++){
     int index = pointer + i +1;
@@ -110,23 +106,24 @@ void updateTS(){
       index = index -CAPACITY;
     }
     readableTs[i] = timeSeries[index];  
-  } 
+  }
+  return readableTs;
 }
 
 /*
 Calculate slope of tendency using least square method
  */
-float calculateM(){
-  updateTS();
-  //float xAverage = average(xSeries(CAPACITY),CAPACITY);
-  //Serial.println(xAverage);
-  //float yAverage = average(readableTs, CAPACITY);
+float calculateM( float *timeSeries){
+//float xAverage = average(xSeries(CAPACITY));
+  float yAverage = average(timeSeries);
+//Serial.println(xAverage);
+  Serial.println(yAverage);
 }
 
 /*
 Calculates the average of a list of values.
 */
-float average(float values[])
+float average(float *values)
 {
   float sum = 0;
   int size = sizeof(values);
@@ -135,4 +132,11 @@ float average(float values[])
   sum += values[i];
   }
   return sum / size;
+}
+
+/*
+Generates an array of the x values of the time series
+*/
+float * xSeries(int capacity)
+{
 }
