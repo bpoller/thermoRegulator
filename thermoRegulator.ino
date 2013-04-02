@@ -42,11 +42,25 @@ Main processing loop
  */
 void loop(){
 
+  float temp = readTemperature();
   put(readTemperature());
   readTimeSeries();
-  //printTimeSeries();
   
-  calculateM();
+  float m = calculateM();
+  float n = calculateN(m);
+  
+  
+  Serial.print("T=");
+  Serial.print(temp);
+  Serial.print("  y=");
+  Serial.print(m);
+  Serial.print("x+");
+  Serial.print(n);
+  Serial.print(" ");
+  Serial.print(forecastTime(21.0,m,n));
+  Serial.println("");
+
+
 
   delay(PERIOD);
 }
@@ -70,7 +84,7 @@ void printTimeSeries()
     Serial.print(readableTs[i][0]);
     Serial.print(", ");
     Serial.print(readableTs[i][1]);
-    Serial.print(") ");
+    Serial.print(") " );
   }
   Serial.println("");
 }
@@ -114,13 +128,25 @@ void readTimeSeries(){
 }
 
 /*
-Calculate slope of tendency using least square method
+Calculate slope of tendency using least square method.
  */
 float calculateM(){
   float xAverage = average(0);
   float yAverage = average(1);
-  Serial.println(xAverage);
-  Serial.println(yAverage);
+  
+  float sumUp = 0.0;
+  float sumBottom = 0.0;
+  
+  for(int i = 0; i < CAPACITY; i++){
+    sumUp = sumUp + ((readableTs[i][0] - xAverage)*(readableTs[i][1]-yAverage));
+    sumBottom = sumBottom + ((readableTs[i][0] - xAverage)*(readableTs[i][0] - xAverage));
+  }
+  return sumUp/sumBottom;
+}
+
+float calculateN(float m)
+{
+  return average(1) - m* average(0);
 }
 
 /*
@@ -134,4 +160,9 @@ float average(int rowId)
     sum += readableTs[i][rowId];
   }
   return sum / CAPACITY;
+}
+
+float forecastTime(float targetTemp, float m, float n)
+{
+ return (targetTemp - n) / m; 
 }
