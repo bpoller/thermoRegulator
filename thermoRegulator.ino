@@ -19,9 +19,9 @@ const int PERIOD = 1000;
 float timeSeries[CAPACITY];
 
 /*
- Time series array used for presentation and calculation purposes
+ Two dimensional time series array used for presentation and calculation purposes.
  */
-float readableTs[CAPACITY];
+float readableTs[CAPACITY][2];
 
 /*
  Pointer used for time series storage. 
@@ -43,9 +43,10 @@ Main processing loop
 void loop(){
 
   put(readTemperature());
+  readTimeSeries();
   //printTimeSeries();
-
-  calculateM(getTimeSeries());
+  
+  calculateM();
 
   delay(PERIOD);
 }
@@ -64,10 +65,12 @@ float readTemperature(){
  */
 void printTimeSeries()
 {
-  float * timeSeries = getTimeSeries();
   for (int i = 0; i < CAPACITY; i++){
-    Serial.print(timeSeries[i]);
-    Serial.print(" ");
+    Serial.print("(");
+    Serial.print(readableTs[i][0]);
+    Serial.print(", ");
+    Serial.print(readableTs[i][1]);
+    Serial.print(") ");
   }
   Serial.println("");
 }
@@ -79,7 +82,8 @@ void printTimeSeries()
 void initTimeSeries(){
   for(int i = 0; i < CAPACITY; i++){
     timeSeries[i] = 0.0;
-    readableTs[i] = 0.0;
+    readableTs[i][0] = 0.0;
+    readableTs[i][1] = 0.0;
   }
 }
 
@@ -98,45 +102,36 @@ void put (float value)
 /*
  Copies the current time series backing array into a presentable array.
  */
-float * getTimeSeries(){
-
+void readTimeSeries(){
   for(int i = 0; i < CAPACITY; i++){
     int index = pointer + i +1;
     if (index > CAPACITY-1) {
       index = index -CAPACITY;
     }
-    readableTs[i] = timeSeries[index];  
+    readableTs[i][0] = 1+i-CAPACITY;
+    readableTs[i][1] = timeSeries[index];  
   }
-  return readableTs;
 }
 
 /*
 Calculate slope of tendency using least square method
  */
-float calculateM( float *timeSeries){
-//float xAverage = average(xSeries(CAPACITY));
-  float yAverage = average(timeSeries);
-//Serial.println(xAverage);
+float calculateM(){
+  float xAverage = average(0);
+  float yAverage = average(1);
+  Serial.println(xAverage);
   Serial.println(yAverage);
 }
 
 /*
-Calculates the average of a list of values.
-*/
-float average(float *values)
+Calculates the average of x or y row of readable time series.
+ */
+float average(int rowId)
 {
   float sum = 0;
-  int size = sizeof(values);
   
-  for (int i = 0; i < size; i++){
-  sum += values[i];
+  for (int i = 0; i < CAPACITY; i++){
+    sum += readableTs[i][rowId];
   }
-  return sum / size;
-}
-
-/*
-Generates an array of the x values of the time series
-*/
-float * xSeries(int capacity)
-{
+  return sum / CAPACITY;
 }
