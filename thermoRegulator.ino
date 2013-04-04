@@ -130,7 +130,9 @@ void perfomRequestedCommands(EthernetClient client)
   client.println("Connection: close");
   client.println();
   client.println("<!DOCTYPE HTML>");
-  client.println("<html><body>Hello World</body></html>");         
+  client.println("<html><body>");
+  printTimeSeries(client);
+  client.println("</body></html>");         
 }
 
 /*
@@ -144,7 +146,6 @@ float readTemperature(){
 void printForecast()
 {
   readTimeSeries();
-  
  
   float temp = readableTs[CAPACITY-1][1];
   float m = calculateM();
@@ -169,17 +170,16 @@ void printForecast()
 /*
   Prints the current time series without modifying its contents.
  */
-void printTimeSeries()
+void printTimeSeries(EthernetClient client)
 {
   readTimeSeries();
   for (int i = 0; i < CAPACITY; i++){
-    Serial.print("(");
-    Serial.print(readableTs[i][0]);
-    Serial.print(", ");
-    Serial.print(readableTs[i][1]);
-    Serial.print(") " );
+    client.print("(");
+    client.print(readableTs[i][0]);
+    client.print(", ");
+    client.print(readableTs[i][1]);
+    client.print(") " );
   }
-  Serial.println("");
 }
 
 
