@@ -6,12 +6,14 @@ int thermistorPin = A0;
 /*
  Capacity of time series
  */
-const int CAPACITY = 5;
+const int CAPACITY = 30;
 
 /*
 Length of a period in milliseconds
  */
 const int PERIOD = 1000;
+
+const float SET_POINT = 21.0;
 
 /*
  The time series backing array
@@ -41,27 +43,8 @@ void setup(){
 Main processing loop
  */
 void loop(){
-
-  float temp = readTemperature();
   put(readTemperature());
-  readTimeSeries();
-  
-  float m = calculateM();
-  float n = calculateN(m);
-  
-  
-  Serial.print("T=");
-  Serial.print(temp);
-  Serial.print("  y=");
-  Serial.print(m);
-  Serial.print("x+");
-  Serial.print(n);
-  Serial.print(" ");
-  Serial.print(forecastTime(21.0,m,n));
-  Serial.println("");
-
-
-
+  printForecast();
   delay(PERIOD);
 }
 
@@ -74,11 +57,37 @@ float readTemperature(){
   return thermistorReading * 0.05;
 }
 
+void printForecast()
+{
+  readTimeSeries();
+  
+ 
+  float temp = readableTs[CAPACITY-1][1];
+  float m = calculateM();
+  float n = calculateN(m);
+  float fCast = forecastTime(m,n);
+  
+  Serial.print("T=");
+  Serial.print(temp);
+  Serial.print("  y=");
+  Serial.print(m);
+  Serial.print("x+");
+  Serial.print(n);
+  Serial.print(" ");
+ 
+  if(fCast > 0){
+    Serial.print(fCast);
+  }
+  
+  Serial.println("");
+}
+
 /*
   Prints the current time series without modifying its contents.
  */
 void printTimeSeries()
 {
+  readTimeSeries();
   for (int i = 0; i < CAPACITY; i++){
     Serial.print("(");
     Serial.print(readableTs[i][0]);
@@ -94,10 +103,12 @@ void printTimeSeries()
  Initialises time series arrays.
  */
 void initTimeSeries(){
+  
+  float temp = readTemperature();
   for(int i = 0; i < CAPACITY; i++){
     timeSeries[i] = 0.0;
     readableTs[i][0] = 0.0;
-    readableTs[i][1] = 0.0;
+    readableTs[i][1] = temp;
   }
 }
 
@@ -162,7 +173,7 @@ float average(int rowId)
   return sum / CAPACITY;
 }
 
-float forecastTime(float targetTemp, float m, float n)
+float forecastTime(float m, float n)
 {
- return (targetTemp - n) / m; 
+ return (SET_POINT - n) / m; 
 }
