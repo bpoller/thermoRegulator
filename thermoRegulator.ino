@@ -126,13 +126,10 @@ Dispatch to all requested commands.
 void perfomRequestedCommands(EthernetClient client)
 {
   client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
+  client.println("Content-Type: application/json");
   client.println("Connection: close");
   client.println();
-  client.println("<!DOCTYPE HTML>");
-  client.println("<html><body>");
-  printTimeSeries(client);
-  client.println("</body></html>");         
+  printTimeSeries(client);        
 }
 
 /*
@@ -140,7 +137,7 @@ void perfomRequestedCommands(EthernetClient client)
  */
 float readTemperature(){
   int thermistorReading = analogRead(thermistorPin);
-  return thermistorReading * 0.05;
+  return thermistorReading * 0.053;
 }
 
 void printForecast()
@@ -174,11 +171,17 @@ void printTimeSeries(EthernetClient client)
 {
   readTimeSeries();
   for (int i = 0; i < CAPACITY; i++){
-    client.print("(");
+    client.print("{\"timeSeries\":[{\"x\":");
     client.print(readableTs[i][0]);
-    client.print(", ");
+    client.print(",\"y\":");
     client.print(readableTs[i][1]);
-    client.print(") " );
+   
+    if(i == CAPACITY-1){
+    client.println("}}" );
+    }
+    else{
+      client.println("};" );
+    }
   }
 }
 
