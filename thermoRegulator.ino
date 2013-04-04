@@ -1,3 +1,19 @@
+#include <SPI.h>
+#include <Ethernet.h>
+
+// MAC address and IP address.
+byte mac[] = { 
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ip(192,168,0, 51);
+
+// Initialize the Ethernet server library on port 80
+EthernetServer server(80);
+
+//Request read buffer
+#define bufferMax 128
+int bufferSize;
+char buffer[bufferMax];
+
 /*
   Analog pin 0 used for reading temperature
  */
@@ -13,6 +29,9 @@ Length of a period in milliseconds
  */
 const int PERIOD = 1000;
 
+/*
+The set temperature.
+*/
 const float SET_POINT = 21.0;
 
 /*
@@ -30,12 +49,15 @@ float readableTs[CAPACITY][2];
  */
 int pointer = 0;
 
+int looper = PERIOD;
+
 /*
 System setup
  */
 void setup(){
   initTimeSeries();
   Serial.begin(9600);
+  initEthernet();
 }
 
 
@@ -43,11 +65,73 @@ void setup(){
 Main processing loop
  */
 void loop(){
-  put(readTemperature());
-  printForecast();
-  delay(PERIOD);
+  
+  if(looper == PERIOD){
+    put(readTemperature());
+    printForecast();
+    looper = 0;
+  }
+  looper++;
+  
+  serveWebRequests();
+  delay(1);
 }
 
+/*
+Web server request - response loop
+*/
+void serveWebRequests()
+{
+  // Listen for incoming clients
+  EthernetClient client = server.available();
+  if (client) {
+    Serial.println("new client");
+    bufferRequest(client);
+    //parseReceivedRequest();
+    perfomRequestedCommands(client);
+
+    // Give the web browser time to receive the data
+    delay(1);
+
+    // Close the connection:
+    client.stop();
+
+    Serial.println("client disonnected");
+  }
+}
+
+/*
+Buffer the request into local memory
+*/
+void bufferRequest(EthernetClient client)
+{
+  bufferSize = 0;
+  while (client.connected()) {
+    if (client.available()) {
+      char c = client.read();
+      if (c == '\n')
+        break;
+      else
+        if (bufferSize < bufferMax)
+          buffer[bufferSize++] = c;
+        else
+          break;
+    }
+  }
+}
+
+/*
+Dispatch to all requested commands.
+*/
+void perfomRequestedCommands(EthernetClient client)
+{
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/html");
+  client.println("Connection: close");
+  client.println();
+  client.println("<!DOCTYPE HTML>");
+  client.println("<html><body>Hello World</body></html>");         
+}
 
 /*
  Read the temperature.
@@ -110,6 +194,17 @@ void initTimeSeries(){
     readableTs[i][0] = 0.0;
     readableTs[i][1] = temp;
   }
+}
+
+/*
+Start the Ethernet connection and the web server.
+*/
+void initEthernet()
+{
+  Ethernet.begin(mac, ip);
+  server.begin();
+  Serial.print("server is at ");
+  Serial.println(Ethernet.localIP());
 }
 
 /*
