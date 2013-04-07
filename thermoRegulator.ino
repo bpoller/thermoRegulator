@@ -17,7 +17,7 @@ IPAddress ip(192,168,0, 51);
 EthernetServer server(80);
 
 //Request read buffer
-#define bufferMax 128
+#define bufferMax 64
 int bufferSize;
 char buffer[bufferMax];
 
@@ -34,12 +34,12 @@ const int CAPACITY = 12;
 /*
 Length of a period in milliseconds (5min)
  */
-const int PERIOD = 5*60000;
+const int PERIOD = 5000;
 
 /*
 The set temperature.
  */
-const float SET_POINT = 21.0;
+const float SET_POINT = 20.0;
 
 /*
  The time series backing array
@@ -92,7 +92,7 @@ void serveWebRequests()
   // Listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
-    Serial.println("new client");
+    Serial.println(P("new client"));
     bufferRequest(client);
     writeResponse(client);
 
@@ -102,7 +102,7 @@ void serveWebRequests()
     // Close the connection:
     client.stop();
 
-    Serial.println("client disonnected");
+    Serial.println(P("client disonnected"));
   }
 }
 
@@ -136,9 +136,9 @@ void writeResponse(EthernetClient client)
 }
 
 void writeHeader(EthernetClient client){
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
-  client.println("Connection: close");
+  client.println(P("HTTP/1.1 200 OK"));
+  client.println(P("Content-Type: text/html"));
+  client.println(P("Connection: close"));
   client.println();
 
 }
@@ -156,17 +156,17 @@ void printForecast()
   readTimeSeries();
 
   float temp = readableTs[CAPACITY-1][1];
-  float m = calculateM();
-  float n = calculateN(m);
+  float m = 12.0;//calculateM();
+  float n = 4;//calculateN(m);
   float fCast = forecastTime(m,n);
 
-  Serial.print("T=");
+  Serial.print(P("T="));
   Serial.print(temp);
-  Serial.print("  y=");
+  Serial.print(P("  y="));
   Serial.print(m);
-  Serial.print("x+");
+  Serial.print(P("x+"));
   Serial.print(n);
-  Serial.print(" ");
+  Serial.print(P(" "));
 
   if(fCast > 0){
     Serial.print(fCast);
@@ -181,7 +181,7 @@ void printForecast()
 void writeWebPage(EthernetClient client)
 {
   readTimeSeries();
-  
+
   client.println(P("<html>"));
   client.println(P("<head>"));
   client.println(P("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"));
@@ -210,11 +210,13 @@ void writeWebPage(EthernetClient client)
   client.println(P("lineWidth: 1,"));
   client.println(P("marker:{enabled:false},"));
   client.println(P("name: 'Set Point',"));
-  client.println(P("data: [21, 21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21]"));
+  client.println(P("data:")); 
+  printSetPoint(client);
   client.println(P("},{"));
   client.println(P("type: 'column',"));
   client.println(P("name: 'Mesured Temperature',"));
-  client.println(P("data: [21.2, 21.0, 20.9, 22.1, 23.4, 19.0, 20.0,20.6,19.5,19.4, 19.5, 19.4, 19.5]"));
+  client.println(P("data:"));
+  printTemp(client);
   client.println(P("},"));
   client.println(P("{"));
   client.println(P("type: 'line',"));
@@ -222,14 +224,53 @@ void writeWebPage(EthernetClient client)
   client.println(P("lineWidth: 3,"));
   client.println(P("marker:{enabled:false},"));
   client.println(P("name: 'Projection',"));
-  client.println(P("data: [21,20.9,20.8,20.7,20.6,20.5,20.4,20.3,20.2,20.1,20.0,19.9,19.8,19.7,19.6,19.5,19.4,19.3,19.2,19.1,19,18.9,18.8,18.7,18.6]"));
+  client.println(P("data:"));
+  printProjection(client);
   client.println(P("}]"));
   client.println(P("});"));
   client.println(P("});</script>"));
   client.println(P("</head>"));
   client.println(P("<div id=\"container\" style=\"width:100%; height:400px;\"></div>"));
   client.println(P("</html>"));
+
+}
+
+void printProjection(EthernetClient client)
+{
+  float m = calculateM();
+  float n = calculateN(m);
   
+  client.println(P("["));
+  for(int x = -CAPACITY; x <= CAPACITY; x++)
+  {
+    client.println(m*x+n);
+    client.println(P(","));
+  }
+  client.println(P("]"));
+}
+
+void printTemp(EthernetClient client)
+{
+  client.println(P("["));
+  for(int i = 0; i < CAPACITY; i++)
+  {
+    client.println(readableTs[i][1]);
+    client.println(P(","));
+  }
+  client.println(readTemperature());
+  client.println(P("]"));
+}
+
+void printSetPoint(EthernetClient client)
+{
+  client.println(P("["));
+  for(int i = -CAPACITY; i < CAPACITY; i++)
+  {
+    client.println(SET_POINT);
+    client.println(P(","));
+  }
+  client.println(SET_POINT);
+  client.println(P("]"));
 }
 
 
@@ -253,7 +294,7 @@ void initEthernet()
 {
   Ethernet.begin(mac, ip);
   server.begin();
-  Serial.print("server is at ");
+  Serial.print(P("server is at "));
   Serial.println(Ethernet.localIP());
 }
 
@@ -278,7 +319,7 @@ void readTimeSeries(){
     if (index > CAPACITY-1) {
       index = index -CAPACITY;
     }
-    readableTs[i][0] = 1+i-CAPACITY;
+    readableTs[i][0] = i-CAPACITY;
     readableTs[i][1] = timeSeries[index];  
   }
 }
@@ -322,4 +363,5 @@ float forecastTime(float m, float n)
 {
   return (SET_POINT - n) / m; 
 }
+
 
