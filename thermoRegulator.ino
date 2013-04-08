@@ -72,7 +72,7 @@ Main processing loop
 void loop(){
 
   static unsigned long before = 0;
-  
+
   if(millis()>before+PERIOD){
     put(readTemperature());
     printForecast();
@@ -136,7 +136,7 @@ void writeResponse(EthernetClient client)
 
 void writeHeader(EthernetClient client){
   client.println(P("HTTP/1.1 200 OK"));
-  client.println(P("Content-Type: text/html"));
+  client.println(P("Content-Type: application/json"));
   client.println(P("Connection: close"));
   client.println();
 
@@ -181,12 +181,34 @@ void printForecast()
 void writeWebPage(EthernetClient client)
 {
   readTimeSeries();
-  client.println(P("<html>"));
-  client.println(P("<head>"));
-  client.println(P("<body>"));
-  client.println(P("Hello World"));
-  client.println(P("</body>"));
-  client.println(P("</html>"));
+  float m = calculateM();
+  float n = calculateN(m);
+
+  client.print(P("{tempHisto:"));
+  printTempHisto(client);
+  client.print(P(", tempNow:"));
+  client.print(readTemperature());
+  client.print(P(",setPoint:"));
+  client.print(SET_POINT);
+  client.print(P(",period:"));
+  client.print(PERIOD);
+  client.print(P(",capacity:"));
+  client.print(CAPACITY);
+  client.print(P(",m:"));
+  client.print(m);
+  client.print(P(",n:"));
+  client.print(n);
+  client.print(P("}"));
+}
+
+String printTempHisto(EthernetClient client){
+  client.print(P("["));
+  for(int i = 0; i < CAPACITY-1; i++){
+    client.print(readableTs[i][1]);
+    client.print(P(","));
+  }
+  client.print(readableTs[CAPACITY-1][1]);
+  client.print(P("]"));
 }
 
 /*
@@ -278,5 +300,6 @@ float forecastTime(float m, float n)
 {
   return (SET_POINT - n) / m * PERIOD; 
 }
+
 
 
