@@ -6,8 +6,6 @@
 char p_buffer[80];
 #define P(str) (strcpy_P(p_buffer, PSTR(str)), p_buffer)
 
-
-
 // MAC address and IP address.
 byte mac[] = { 
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -32,14 +30,14 @@ int thermistorPin = A0;
 const int CAPACITY = 12;
 
 /*
-Length of a period in milliseconds (5min)
+Length of a period in milliseconds
  */
 const int PERIOD = 5000;
 
 /*
 The set temperature.
  */
-const float SET_POINT = 20.0;
+const float SET_POINT = 21.0;
 
 /*
  The time series backing array
@@ -56,7 +54,7 @@ float readableTs[CAPACITY][2];
  */
 int pointer = 0;
 
-int looper = PERIOD;
+
 
 /*
 System setup
@@ -73,15 +71,16 @@ Main processing loop
  */
 void loop(){
 
-  if(looper == PERIOD){
+  static unsigned long before = 0;
+  
+  if(millis()>before+PERIOD){
     put(readTemperature());
     printForecast();
-    looper = 0;
+    before=millis();
   }
-  looper++;
 
   serveWebRequests();
-  delay(1);
+  delay(500);
 }
 
 /*
@@ -156,8 +155,8 @@ void printForecast()
   readTimeSeries();
 
   float temp = readableTs[CAPACITY-1][1];
-  float m = 12.0;//calculateM();
-  float n = 4;//calculateN(m);
+  float m = calculateM();
+  float n = calculateN(m);
   float fCast = forecastTime(m,n);
 
   Serial.print(P("T="));
@@ -169,7 +168,8 @@ void printForecast()
   Serial.print(P(" "));
 
   if(fCast > 0){
-    Serial.print(fCast);
+    Serial.print(fCast/1000);
+    Serial.print(P("s"));
   }
 
   Serial.println("");
@@ -181,98 +181,13 @@ void printForecast()
 void writeWebPage(EthernetClient client)
 {
   readTimeSeries();
-
   client.println(P("<html>"));
   client.println(P("<head>"));
-  client.println(P("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"));
-  client.println(P("<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js\"></script>"));    
-  client.println(P("<script src=\"http://code.highcharts.com/highcharts.js\"></script>"));
-  client.println(P("<script>"));
-  client.println(P("$(function () { "));
-  client.println(P("$('#container').highcharts({"));
-  client.println(P("chart: {"));
-  client.println(P("type: 'column'"));
-  client.println(P("},"));
-  client.println(P("title: {"));
-  client.println(P("text: 'Time Series Analysis'"));
-  client.println(P("},"));
-  client.println(P("xAxis: {"));
-  client.println(P("categories: ['-60m','-55m','-50m', '-45m', '-40m', '-35m', '-30m', '-25m', '-20m', '-15m', '-10m', '-5m', 'now', '5m', '10m', '15m', '20m', '25m', '30m', '35m','40m', '45m','50m','55m', '60m']"));
-  client.println(P("},"));
-  client.println(P("yAxis: {"));
-  client.println(P("title: {"));
-  client.println(P("text: '°C'"));
-  client.println(P("}"));
-  client.println(P("},"));
-  client.println(P("series: [{"));
-  client.println(P("type: 'line',"));
-  client.println(P("color:'red',"));
-  client.println(P("lineWidth: 1,"));
-  client.println(P("marker:{enabled:false},"));
-  client.println(P("name: 'Set Point',"));
-  client.println(P("data:")); 
-  printSetPoint(client);
-  client.println(P("},{"));
-  client.println(P("type: 'column',"));
-  client.println(P("name: 'Mesured Temperature',"));
-  client.println(P("data:"));
-  printTemp(client);
-  client.println(P("},"));
-  client.println(P("{"));
-  client.println(P("type: 'line',"));
-  client.println(P("color:'orange',"));
-  client.println(P("lineWidth: 3,"));
-  client.println(P("marker:{enabled:false},"));
-  client.println(P("name: 'Projection',"));
-  client.println(P("data:"));
-  printProjection(client);
-  client.println(P("}]"));
-  client.println(P("});"));
-  client.println(P("});</script>"));
-  client.println(P("</head>"));
-  client.println(P("<div id=\"container\" style=\"width:100%; height:400px;\"></div>"));
+  client.println(P("<body>"));
+  client.println(P("Hello World"));
+  client.println(P("</body>"));
   client.println(P("</html>"));
-
 }
-
-void printProjection(EthernetClient client)
-{
-  float m = calculateM();
-  float n = calculateN(m);
-  
-  client.println(P("["));
-  for(int x = -CAPACITY; x <= CAPACITY; x++)
-  {
-    client.println(m*x+n);
-    client.println(P(","));
-  }
-  client.println(P("]"));
-}
-
-void printTemp(EthernetClient client)
-{
-  client.println(P("["));
-  for(int i = 0; i < CAPACITY; i++)
-  {
-    client.println(readableTs[i][1]);
-    client.println(P(","));
-  }
-  client.println(readTemperature());
-  client.println(P("]"));
-}
-
-void printSetPoint(EthernetClient client)
-{
-  client.println(P("["));
-  for(int i = -CAPACITY; i < CAPACITY; i++)
-  {
-    client.println(SET_POINT);
-    client.println(P(","));
-  }
-  client.println(SET_POINT);
-  client.println(P("]"));
-}
-
 
 /*
  Initialises time series arrays.
@@ -361,7 +276,7 @@ float average(int rowId)
 
 float forecastTime(float m, float n)
 {
-  return (SET_POINT - n) / m; 
+  return (SET_POINT - n) / m * PERIOD; 
 }
 
 
