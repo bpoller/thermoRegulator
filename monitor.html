@@ -5,6 +5,12 @@
   <script src="http://code.highcharts.com/highcharts.js"></script>
   <script>
   $(function () { 
+
+   $.getJSON("http://192.168.0.51/?callback=?", function(data){console.log("success")})
+    .fail(function(){console.log("error");});
+
+  
+
     $('#container').highcharts({
         chart: {
             type: 'column'
