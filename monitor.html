@@ -5,13 +5,22 @@
   <script src="http://code.highcharts.com/highcharts.js"></script>
   <script>
   $(function () { 
-
-   $.getJSON("http://192.168.0.51/?callback=?", function(data){console.log("success")})
-    .fail(function(){console.log("error");});
-
+    
+    //Get data
+    $.ajax({
+    	url: "http://192.168.0.51",
+    	dataType: 'jsonp',
+    	cache:true,
+    	jsonpCallback: 'cb',
+    	success : function (data) {
+    	  renderChart(data);
+      	}
+    });
   
-
-    $('#container').highcharts({
+    function renderChart(rawData)
+    {
+    
+      $('#container').highcharts({
         chart: {
             type: 'column'
         },
@@ -32,7 +41,7 @@
             lineWidth: 1,
             marker:{enabled:false},
 	    name: 'Set Point',
-            data: [21, 21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21]
+            data: [],
         },{
             type: 'column',
             name: 'Mesured Temperature',
@@ -47,7 +56,15 @@
             data: [21,20.9,20.8,20.7,20.6,20.5,20.4,20.3,20.2,20.1,20.0,19.9,19.8,19.7,19.6,19.5,19.4,19.3,19.2,19.1,19,18.9,18.8,18.7,18.6]
         }]
     });
-});</script>
+     }
+
+    generateSetPoints(rawData){
+     return [21,21,21,21];
+    }
+    
+});
+
+</script>
 </head>
   <div id="container" style="width:100%; height:400px;"></div>
 </html>
