@@ -4,67 +4,75 @@
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>    
   <script src="http://code.highcharts.com/highcharts.js"></script>
   <script>
-  $(function () { 
     
-    //Get data
-    $.ajax({
-    	url: "http://192.168.0.51",
-    	dataType: 'jsonp',
-    	cache:true,
-    	jsonpCallback: 'cb',
-    	success : function (data) {
-    	  renderChart(data);
-      	}
-    });
-  
-    function renderChart(rawData)
-    {
+    var chart = {
+        chart:  {type: 'column'},
+        title:  {text: 'Time Series Analysis'},
+        xAxis:  {categories: ['-60m','-55m','-50m', '-45m', '-40m', '-35m', '-30m', '-25m', '-20m', '-15m', '-10m', '-5m', 'now', '5m', '10m', '15m', '20m', '25m', '30m', '35m','40m', '45m','50m','55m', '60m']},
+        yAxis:  {title: {text: '°C'}},
+        series: [{type: 'line',
+                  color:'red',
+                  lineWidth: 1,
+                  marker:{enabled:false},
+	                name: 'Set Point',
+                  data: []},
+                 {type: 'column',
+                  name: 'Mesured Temperature',
+                  data: [21.2, 21.0, 20.9, 22.1, 23.4, 19.0, 20.0,20.6,19.5,19.4, 19.5, 19.4, 19.5]},
+                 {type: 'line',
+                  color:'orange',
+                  lineWidth: 3,
+                  marker:{enabled:false},
+                  name: 'Projection',
+                  data: [21,20.9,20.8,20.7,20.6,20.5,20.4,20.3,20.2,20.1,20.0,19.9,19.8,19.7,19.6,19.5,19.4,19.3,19.2,19.1,19,18.9,18.8,18.7,18.6]}
+                ]
+        };
     
-      $('#container').highcharts({
-        chart: {
-            type: 'column'
-        },
-        title: {
-            text: 'Time Series Analysis'
-        },
-        xAxis: {
-            categories: ['-60m','-55m','-50m', '-45m', '-40m', '-35m', '-30m', '-25m', '-20m', '-15m', '-10m', '-5m', 'now', '5m', '10m', '15m', '20m', '25m', '30m', '35m','40m', '45m','50m','55m', '60m']
-        },
-        yAxis: {
-            title: {
-                text: '°C'
-            }
-        },
-        series: [{
-            type: 'line',
-            color:'red',
-            lineWidth: 1,
-            marker:{enabled:false},
-	    name: 'Set Point',
-            data: [],
-        },{
-            type: 'column',
-            name: 'Mesured Temperature',
-            data: [21.2, 21.0, 20.9, 22.1, 23.4, 19.0, 20.0,20.6,19.5,19.4, 19.5, 19.4, 19.5]
-        },
-        {
-            type: 'line',
-            color:'orange',
-            lineWidth: 3,
-            marker:{enabled:false},
-            name: 'Projection',
-            data: [21,20.9,20.8,20.7,20.6,20.5,20.4,20.3,20.2,20.1,20.0,19.9,19.8,19.7,19.6,19.5,19.4,19.3,19.2,19.1,19,18.9,18.8,18.7,18.6]
-        }]
-    });
-     }
-
-    generateSetPoints(rawData){
-     return [21,21,21,21];
-    }
     
-});
-
-</script>
+    $(function () { 
+      
+      //Retrieves data and renders them.
+      $.ajax({
+      	url: "http://192.168.0.51",
+      	dataType: 'jsonp',
+      	cache:true,
+      	jsonpCallback: 'cb',
+      	success : function (data) {renderChart(data);}
+      });
+    
+      function renderChart(rawData){
+        chart.series[0].data = generateSetPointSeries(rawData);
+        chart.series[1].data = getMesuredTemperature(rawData);
+        chart.series[2].data = getProjection(rawData);
+        $('#container').highcharts(chart);
+      }
+      
+      function generateSetPointSeries(rawData){
+       var setPointSeries = new Array();
+       
+       for (i = 0; i < rawData.capacity * 2 +1; i++){
+        setPointSeries[i] = rawData.setPoint;
+       }
+       
+       return setPointSeries;
+      }
+      
+      function getMesuredTemperature(rawData){
+        var temps = rawData.tempHisto;
+        temps.push(rawData.tempNow);
+        return temps;
+      }
+      
+      function getProjection(rawData){
+        var projection = new Array(); 
+        for (i = 0; i < rawData.capacity * 2 +1; i++){
+          var x = i - rawData.capacity;
+          projection[i] = rawData.m * x + rawData.n;
+        }
+        return projection;
+      }
+  });
+  </script>
 </head>
   <div id="container" style="width:100%; height:400px;"></div>
 </html>
