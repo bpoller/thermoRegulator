@@ -31,9 +31,9 @@ int thermistorPin = A0;
 const int CAPACITY = 12;
 
 /*
-Length of a period in milliseconds
+Length of a period in milliseconds (5 min)
  */
-const int PERIOD = 5000;
+const long PERIOD = 5*60000;
 
 /*
 The set temperature.
@@ -59,8 +59,6 @@ int pointer = 0;
  JSONP callback function name.
 */
 char callbackFunction[20];
-
-
 
 /*
 System setup
@@ -319,6 +317,3 @@ float forecastTime(float m, float n)
 {
   return (SET_POINT - n) / m * PERIOD; 
 }
-
-
-
