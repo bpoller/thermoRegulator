@@ -9,18 +9,19 @@
         chart:  {type: 'column'},
         title:  {text: 'Time Series Analysis'},
         xAxis:  {categories: ['-60m','-55m','-50m', '-45m', '-40m', '-35m', '-30m', '-25m', '-20m', '-15m', '-10m', '-5m', 'now', '5m', '10m', '15m', '20m', '25m', '30m', '35m','40m', '45m','50m','55m', '60m']},
-        yAxis:  {title: {text: '°C'}},
+        yAxis:  {title: {text: '°C'}, min:16, max:25, tickInterval: 1},
         series: [{type: 'line',
-                  color:'red',
+                  color:'#D379C4',
                   lineWidth: 1,
                   marker:{enabled:false},
 	                name: 'Set Point',
                   data: []},
                  {type: 'column',
+                  color: '#A4D379',
                   name: 'Mesured Temperature',
                   data: []},
                  {type: 'line',
-                  color:'orange',
+                  color:'#E79307',
                   lineWidth: 3,
                   marker:{enabled:false},
                   name: 'Projection',
@@ -44,7 +45,29 @@
         chart.series[0].data = generateSetPointSeries(rawData);
         chart.series[1].data = getMesuredTemperature(rawData);
         chart.series[2].data = getProjection(rawData);
-        $('#container').highcharts(chart);
+        
+        $('#tempChart').highcharts(chart);
+        $('#setpoint').text(rawData.setPoint);
+        $('#temp').text(rawData.tempNow);
+        $('#projection').text(forecastSetPointReached(rawData));
+      }
+      
+      function forecastSetPointReached(rawData)
+      {
+         var proj = (rawData.setPoint - rawData.n) / rawData.m * rawData.period / 60000;
+         var result = "";
+      
+        if(proj < 0){
+          result = "Projected intersection happened " + (-proj.toFixed(4)) + " minutes ago.";
+        }
+        else  if(proj > 0 && proj < Infinity){
+          result = "Projected intersection happens in " + proj.toFixed(4) + " mins.";
+        }
+        else {
+          result = "Projected intersection never happens.";
+        }
+       
+       return result;
       }
       
       function generateSetPointSeries(rawData){
@@ -74,5 +97,10 @@
   });
   </script>
 </head>
-  <div id="container" style="width:100%; height:400px;"></div>
+  <div class="container" style="height:100%; min-height:100%">
+    <div class="one" id="tempChart" style="width:100%; height:80%; float:left;"></div>
+    <div class="two" style="width:33%; height:30px; float:left; background-color: rgb(164,211,121);">Temp: <span id="temp"></span>°C</div>
+    <div class="three" style="width:33%; height:30px; float:left;background-color:  rgb(211,121,196);">Set Point: <span id="setpoint"></span>°C</div>
+    <div class="four" id="projection" style="width:33%; height:30px; float:left;background-color:rgb(231,147,7);"></div>
+  </div>
 </html>

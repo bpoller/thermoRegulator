@@ -38,7 +38,7 @@ const long PERIOD = 5*60000;
 /*
 The set temperature.
  */
-const float SET_POINT = 21.0;
+const float SET_POINT = 20.0;
 
 /*
  The time series backing array
@@ -79,7 +79,7 @@ void loop(){
 
   if(millis()>before+PERIOD){
     put(readTemperature());
-    printForecast();
+    //printForecast();
     before=millis();
   }
 
@@ -315,5 +315,6 @@ float average(int rowId)
 
 float forecastTime(float m, float n)
 {
+  
   return (SET_POINT - n) / m * PERIOD; 
 }
