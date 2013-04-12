@@ -3,6 +3,28 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>    
   <script src="http://code.highcharts.com/highcharts.js"></script>
+  <style type="text/css">
+  
+    .container{
+      height:100%;
+      min-height:100%;
+    }
+    
+    .tempChart{
+      width:100%; 
+      height:80%; 
+      float:left;
+      }
+    
+    .field{
+      width:33%; 
+      height:40px; 
+      float:left;
+      }
+  
+  </style>
+  
+  
   <script>
     
     var chart = {
@@ -29,78 +51,101 @@
                 ]
         };
     
+  // Excuted when the page is loaded.  
+  $(function () { renderPage();});
+  
+  //Retrieves data and renders them.
+  function renderPage(){
+    $.ajax({
+    	url: "http://bpoller.hd.free.fr/timeSeries/get",
+    	dataType: 'jsonp',
+    	cache:true,
+    	jsonpCallback: 'cb',
+    	success : function (data) {renderChart(data);}
+    });
+  }
+  
+  function renderChart(rawData){
+    chart.series[0].data = generateSetPointSeries(rawData);
+    chart.series[1].data = getMesuredTemperature(rawData);
+    chart.series[2].data = getProjection(rawData);
     
-    $(function () { 
-      
-      //Retrieves data and renders them.
-      $.ajax({
-      	url: "http://bpoller.hd.free.fr",
-      	dataType: 'jsonp',
-      	cache:true,
-      	jsonpCallback: 'cb',
-      	success : function (data) {renderChart(data);}
-      });
+    $('div.tempChart').highcharts(chart);
+    $('#setpoint').text(rawData.setPoint);
+    $('#temp').text(rawData.tempNow);
+    $('#projection').text(forecastSetPointReached(rawData));
+  }
+  
+  function forecastSetPointReached(rawData)
+  {
+     var proj = (rawData.setPoint - rawData.n) / rawData.m * rawData.period / 60000;
+     var result = "";
+  
+    if(proj > -Infinity && proj < 0){
+      result = "Projected intersection happened " + (-proj.toFixed(4)) + " minutes ago.";
+    }
+    else  if(proj < Infinity && proj > 0){
+      result = "Projected intersection happens in " + proj.toFixed(4) + " mins.";
+    }
+    else {
+      result = "Projected intersection never happens.";
+    }
+   
+   return result;
+  }
+  
+  function generateSetPointSeries(rawData){
+   var setPointSeries = new Array();
+   
+   for (i = 0; i < rawData.capacity * 2 +1; i++){
+    setPointSeries[i] = rawData.setPoint;
+   }
+   
+   return setPointSeries;
+  }
+  
+  function getMesuredTemperature(rawData){
+    var temps = rawData.tempHisto;
+    temps.push(rawData.tempNow);
+    return temps;
+  }
+  
+  function getProjection(rawData){
+    var projection = new Array(); 
+    for (i = 0; i < rawData.capacity * 2 +1; i++){
+      var x = i - rawData.capacity;
+      projection[i] = rawData.m * x + rawData.n;
+    }
+    return projection;
+  }
+  
+  function calibrate(){
+   
+   var temp = parseFloat($('input#calTemp').val());
+   
+   if(!isNaN(temp)){
+    console.log("Calibrate to " + temp);
+    $.ajax({
+    	url: "http://bpoller.hd.free.fr/setPoint/calibrate/"+temp,
+    	dataType: 'jsonp',
+    	cache:true,
+    	jsonpCallback: 'cb',
+    	success : function (data) {renderPage();}
+    });
+   }
     
-      function renderChart(rawData){
-        chart.series[0].data = generateSetPointSeries(rawData);
-        chart.series[1].data = getMesuredTemperature(rawData);
-        chart.series[2].data = getProjection(rawData);
-        
-        $('#tempChart').highcharts(chart);
-        $('#setpoint').text(rawData.setPoint);
-        $('#temp').text(rawData.tempNow);
-        $('#projection').text(forecastSetPointReached(rawData));
-      }
-      
-      function forecastSetPointReached(rawData)
-      {
-         var proj = (rawData.setPoint - rawData.n) / rawData.m * rawData.period / 60000;
-         var result = "";
-      
-        if(proj < 0){
-          result = "Projected intersection happened " + (-proj.toFixed(4)) + " minutes ago.";
-        }
-        else  if(proj > 0 && proj < Infinity){
-          result = "Projected intersection happens in " + proj.toFixed(4) + " mins.";
-        }
-        else {
-          result = "Projected intersection never happens.";
-        }
-       
-       return result;
-      }
-      
-      function generateSetPointSeries(rawData){
-       var setPointSeries = new Array();
-       
-       for (i = 0; i < rawData.capacity * 2 +1; i++){
-        setPointSeries[i] = rawData.setPoint;
-       }
-       
-       return setPointSeries;
-      }
-      
-      function getMesuredTemperature(rawData){
-        var temps = rawData.tempHisto;
-        temps.push(rawData.tempNow);
-        return temps;
-      }
-      
-      function getProjection(rawData){
-        var projection = new Array(); 
-        for (i = 0; i < rawData.capacity * 2 +1; i++){
-          var x = i - rawData.capacity;
-          projection[i] = rawData.m * x + rawData.n;
-        }
-        return projection;
-      }
-  });
+  }
+  
   </script>
 </head>
-  <div class="container" style="height:100%; min-height:100%">
-    <div class="one" id="tempChart" style="width:100%; height:80%; float:left;"></div>
-    <div class="two" style="width:33%; height:30px; float:left; background-color: rgb(164,211,121);">Temp: <span id="temp"></span>°C</div>
-    <div class="three" style="width:33%; height:30px; float:left;background-color:  rgb(211,121,196);">Set Point: <span id="setpoint"></span>°C</div>
-    <div class="four" id="projection" style="width:33%; height:30px; float:left;background-color:rgb(231,147,7);"></div>
+  <div class="container">
+    <div class="tempChart"></div>
+    <div class="field" style="background-color: rgb(164,211,121);">Temp: <span id="temp"></span>°C</div>
+    <div class="field" style="background-color:  rgb(211,121,196);">Set Point: <span id="setpoint"></span>°C</div>
+    <div class="field" id="projection" style="background-color:rgb(231,147,7);"></div>
+    <div class="field" style="background-color:rgb(231,147,7);">
+      <input type="text" id="calTemp">
+      <button id="calibButton" onClick="calibrate();">Calibrate!</button>
+    </div>
   </div>
 </html>
