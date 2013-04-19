@@ -33,7 +33,7 @@ const int CAPACITY = 12;
 /*
 Length of a period in milliseconds (5 min)
  */
-const long PERIOD = 5*60000;
+const long PERIOD = 5000;//5*60000;
 
 /*
 The set temperature.
@@ -79,7 +79,7 @@ void loop(){
 
   if(millis()>before+PERIOD){
     put(readTemperature());
-    //printForecast();
+    printForecast();
     before=millis();
   }
 
@@ -160,11 +160,17 @@ void writeHeader(EthernetClient client){
 }
 
 /*
- Read the temperature.
+ Read the temperature from pin 1 and convert it according to Steinhart-Hart formula
  */
-float readTemperature(){
-  int thermistorReading = analogRead(thermistorPin);
-  return thermistorReading * 0.053;
+double readTemperature(){
+ int thermistorReading = analogRead(thermistorPin);
+ double r = 6963200.0/thermistorReading - 6800.0;
+ r = r/10000;
+ double temp = 3.354016E-03 + 2.569850E-04 *log(r) + (2.620131E-06*pow(log(r),2)) + (6.383091E-08*pow(log(r),3));
+ temp = (1/temp)-272.15;// Convert Kelvin to Celcius
+ Serial.println(temp);           
+ return temp;
+  
 }
 
 void printForecast()
