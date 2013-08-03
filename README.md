@@ -9,5 +9,5 @@ Temperature readings are exposed through a REST API with [JSONP](http://en.wikip
 
 A static web page accesses the REST API and visualises the time series using the [Highcharts](http://www.highcharts.com/) JavaScript API.
 
-Temperature trends are calculated using the [Least Squares] (http://en.wikipedia.org/wiki/Least_squares) approximations.
+Temperature trends are calculated using [Least Squares] (http://en.wikipedia.org/wiki/Least_squares) approximations.
 
